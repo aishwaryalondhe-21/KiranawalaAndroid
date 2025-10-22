@@ -1,0 +1,71 @@
+package com.kiranawala.domain.use_cases.auth
+
+import com.kiranawala.domain.models.Result
+import com.kiranawala.domain.repositories.AuthRepository
+import com.kiranawala.utils.logger.KiranaLogger
+import com.kiranawala.utils.validators.EmailValidator
+import com.kiranawala.utils.validators.PasswordValidator
+import com.kiranawala.utils.validators.PhoneValidator
+import javax.inject.Inject
+
+/**
+ * Sign up use case
+ * Handles new user registration with validation
+ */
+class SignUpUseCase @Inject constructor(
+    private val authRepository: AuthRepository
+) {
+    companion object {
+        private const val TAG = "SignUpUseCase"
+    }
+    
+    /**
+     * Execute sign up
+     * @param email User email
+     * @param password User password
+     * @param phone User phone number
+     * @param name User full name
+     * @return Result containing auth token or error
+     */
+    suspend operator fun invoke(
+        email: String,
+        password: String,
+        phone: String,
+        name: String
+    ): Result<String> {
+        return try {
+            // Validate name
+            if (name.isBlank()) {
+                KiranaLogger.w(TAG, "Name cannot be empty")
+                return Result.Error(Exception("Name cannot be empty"))
+            }
+            
+            // Validate email
+            val emailError = EmailValidator.validate(email)
+            if (emailError != null) {
+                KiranaLogger.w(TAG, "Invalid email: $emailError")
+                return Result.Error(Exception(emailError))
+            }
+            
+            // Validate phone
+            val phoneError = PhoneValidator.validate(phone)
+            if (phoneError != null) {
+                KiranaLogger.w(TAG, "Invalid phone: $phoneError")
+                return Result.Error(Exception(phoneError))
+            }
+            
+            // Validate password
+            val passwordError = PasswordValidator.validate(password)
+            if (passwordError != null) {
+                KiranaLogger.w(TAG, "Invalid password: $passwordError")
+                return Result.Error(Exception(passwordError))
+            }
+            
+            KiranaLogger.d(TAG, "Attempting sign up for email: $email")
+            authRepository.signUp(email, password, phone, name)
+        } catch (e: Exception) {
+            KiranaLogger.e(TAG, "Sign up failed", e)
+            Result.Error(e)
+        }
+    }
+}

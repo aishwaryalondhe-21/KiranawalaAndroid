@@ -1,0 +1,50 @@
+package com.kiranawala.domain.use_cases.auth
+
+import com.kiranawala.domain.models.Result
+import com.kiranawala.domain.repositories.AuthRepository
+import com.kiranawala.utils.logger.KiranaLogger
+import com.kiranawala.utils.validators.EmailValidator
+import com.kiranawala.utils.validators.PasswordValidator
+import javax.inject.Inject
+
+/**
+ * Login use case
+ * Handles user login with validation
+ */
+class LoginUseCase @Inject constructor(
+    private val authRepository: AuthRepository
+) {
+    companion object {
+        private const val TAG = "LoginUseCase"
+    }
+    
+    /**
+     * Execute login
+     * @param email User email
+     * @param password User password
+     * @return Result containing auth token or error
+     */
+    suspend operator fun invoke(
+        email: String,
+        password: String
+    ): Result<String> {
+        return try {
+            // Basic validation - just check not empty
+            if (email.isBlank()) {
+                KiranaLogger.w(TAG, "Email is empty")
+                return Result.Error(Exception("Email is required"))
+            }
+            
+            if (password.isBlank()) {
+                KiranaLogger.w(TAG, "Password is empty")
+                return Result.Error(Exception("Password is required"))
+            }
+            
+            KiranaLogger.d(TAG, "Attempting login for email: $email")
+            authRepository.login(email, password)
+        } catch (e: Exception) {
+            KiranaLogger.e(TAG, "Login failed", e)
+            Result.Error(e)
+        }
+    }
+}

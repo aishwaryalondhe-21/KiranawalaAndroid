@@ -1,0 +1,322 @@
+package com.kiranawala.presentation.screens.auth
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
+import com.kiranawala.presentation.components.common.LoadingDialog
+import com.kiranawala.presentation.navigation.Routes
+
+/**
+ * Sign up screen
+ * Allows new users to create an account
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SignUpScreen(
+    navController: NavController,
+    viewModel: AuthViewModel = hiltViewModel()
+) {
+    val authState by viewModel.authState.collectAsState()
+    val focusManager = LocalFocusManager.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scrollState = rememberScrollState()
+    
+    var name by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
+    
+    // Handle navigation on successful signup
+    LaunchedEffect(authState.isLoggedIn) {
+        if (authState.isLoggedIn) {
+            navController.navigate(Routes.HomeScreen.route) {
+                popUpTo(Routes.SignUpScreen.route) { inclusive = true }
+            }
+        }
+    }
+    
+    // Show error messages
+    LaunchedEffect(authState.error) {
+        authState.error?.let {
+            snackbarHostState.showSnackbar(
+                message = it,
+                duration = SnackbarDuration.Short
+            )
+            viewModel.onEvent(AuthEvent.ClearError)
+        }
+    }
+    
+    // Show success messages
+    LaunchedEffect(authState.successMessage) {
+        authState.successMessage?.let {
+            snackbarHostState.showSnackbar(
+                message = it,
+                duration = SnackbarDuration.Short
+            )
+            viewModel.onEvent(AuthEvent.ClearSuccess)
+        }
+    }
+    
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(modifier = Modifier.height(32.dp))
+                
+                // Title
+                Text(
+                    text = "Create Account",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = "Sign up to get started",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                Spacer(modifier = Modifier.height(32.dp))
+                
+                // Name Field
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Full Name") },
+                    leadingIcon = {
+                        Icon(Icons.Default.Person, contentDescription = "Name")
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                    ),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Email Field
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email") },
+                    leadingIcon = {
+                        Icon(Icons.Default.Email, contentDescription = "Email")
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                    ),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Phone Field
+                OutlinedTextField(
+                    value = phone,
+                    onValueChange = { if (it.length <= 10) phone = it },
+                    label = { Text("Phone Number") },
+                    leadingIcon = {
+                        Icon(Icons.Default.Phone, contentDescription = "Phone")
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Phone,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                    ),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    supportingText = { Text("10-digit mobile number") }
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Password Field
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Password") },
+                    leadingIcon = {
+                        Icon(Icons.Default.Lock, contentDescription = "Password")
+                    },
+                    trailingIcon = {
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(
+                                imageVector = if (passwordVisible) 
+                                    Icons.Default.Visibility 
+                                else 
+                                    Icons.Default.VisibilityOff,
+                                contentDescription = if (passwordVisible) 
+                                    "Hide password" 
+                                else 
+                                    "Show password"
+                            )
+                        }
+                    },
+                    visualTransformation = if (passwordVisible) 
+                        VisualTransformation.None 
+                    else 
+                        PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                    ),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    supportingText = { Text("At least 8 characters") }
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Confirm Password Field
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = { confirmPassword = it },
+                    label = { Text("Confirm Password") },
+                    leadingIcon = {
+                        Icon(Icons.Default.Lock, contentDescription = "Confirm Password")
+                    },
+                    trailingIcon = {
+                        IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                            Icon(
+                                imageVector = if (confirmPasswordVisible) 
+                                    Icons.Default.Visibility 
+                                else 
+                                    Icons.Default.VisibilityOff,
+                                contentDescription = if (confirmPasswordVisible) 
+                                    "Hide password" 
+                                else 
+                                    "Show password"
+                            )
+                        }
+                    },
+                    visualTransformation = if (confirmPasswordVisible) 
+                        VisualTransformation.None 
+                    else 
+                        PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = { focusManager.clearFocus() }
+                    ),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = confirmPassword.isNotEmpty() && password != confirmPassword,
+                    supportingText = {
+                        if (confirmPassword.isNotEmpty() && password != confirmPassword) {
+                            Text("Passwords do not match")
+                        }
+                    }
+                )
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                // Sign Up Button
+                Button(
+                    onClick = {
+                        focusManager.clearFocus()
+                        if (password == confirmPassword) {
+                            viewModel.onEvent(
+                                AuthEvent.SignUp(email, password, phone, name)
+                            )
+                        } else {
+                            // Show error for password mismatch
+                            // Will be handled by validation in use case
+                        }
+                    },
+                    enabled = name.isNotBlank() && 
+                             email.isNotBlank() && 
+                             phone.isNotBlank() && 
+                             password.isNotBlank() && 
+                             password == confirmPassword &&
+                             !authState.isLoading,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                ) {
+                    Text(
+                        text = "Sign Up",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Login Link
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Already have an account?",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    TextButton(
+                        onClick = {
+                            navController.popBackStack()
+                        }
+                    ) {
+                        Text("Login")
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(32.dp))
+            }
+            
+            // Loading Dialog
+            LoadingDialog(
+                isLoading = authState.isLoading,
+                message = "Creating account..."
+            )
+        }
+    }
+}
