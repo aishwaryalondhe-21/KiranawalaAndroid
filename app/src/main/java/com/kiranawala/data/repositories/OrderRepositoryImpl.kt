@@ -150,16 +150,16 @@ class OrderRepositoryImpl @Inject constructor(
                 }
                 .decodeList<OrderItemDto>()
             
-            // Fetch store name
-            val storeName = try {
+            // Fetch store name and phone
+            val (storeName, storePhone) = try {
                 val store = supabase["stores"]
-                    .select(Columns.raw("name")) {
+                    .select(Columns.raw("name, contact")) {
                         filter { eq("id", orderDto.store_id) }
                     }
                     .decodeSingle<Map<String, String>>()
-                store["name"] ?: orderDto.store_id
+                Pair(store["name"] ?: orderDto.store_id, store["contact"] ?: "")
             } catch (e: Exception) {
-                orderDto.store_id
+                Pair(orderDto.store_id, "")
             }
             
             val createdAt = orderDto.created_at?.let { Instant.parse(it).toLocalDateTime(TimeZone.UTC) }
@@ -172,6 +172,7 @@ class OrderRepositoryImpl @Inject constructor(
                 customerId = orderDto.customer_id,
                 storeId = orderDto.store_id,
                 storeName = storeName,
+                storePhone = storePhone,
                 totalAmount = orderDto.total_amount,
                 deliveryFee = orderDto.delivery_fee,
                 status = orderDto.status,
@@ -202,6 +203,7 @@ class OrderRepositoryImpl @Inject constructor(
                 customerId = orderEntity.customerId,
                 storeId = orderEntity.storeId,
                 storeName = orderEntity.storeId,
+                storePhone = "", // Fallback local cache doesn't have store phone
                 totalAmount = orderEntity.totalAmount,
                 deliveryFee = 30.0,
                 status = orderEntity.status,
@@ -316,6 +318,7 @@ class OrderRepositoryImpl @Inject constructor(
                 customerId = dto.customer_id,
                 storeId = dto.store_id,
                 storeName = dto.store_name.ifBlank { dto.store_id },
+                storePhone = "", // Not stored in order table, would need separate query
                 totalAmount = dto.total_amount,
                 deliveryFee = dto.delivery_fee,
                 status = dto.status,
@@ -375,6 +378,7 @@ class OrderRepositoryImpl @Inject constructor(
                 customerId = orderEntity.customerId,
                 storeId = orderEntity.storeId,
                 storeName = orderEntity.storeId,
+                storePhone = "", // Cached orders don't have store phone
                 totalAmount = orderEntity.totalAmount,
                 deliveryFee = 30.0,
                 status = orderEntity.status,

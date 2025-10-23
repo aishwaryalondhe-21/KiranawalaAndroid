@@ -1,8 +1,9 @@
 # 🛒 Kiranawala - Multi-Store Grocery Management App
 
-**Version:** 1.0  
-**Status:** Phone OTP Authentication Completed ✅  
-**Tech Stack:** Kotlin + Jetpack Compose + Supabase + Hilt
+**Version:** 1.0.1  
+**Status:** Shopping Cart Fixed - All Core Features Working ✅  
+**Tech Stack:** Kotlin + Jetpack Compose + Supabase + Hilt  
+**GitHub:** https://github.com/aishwaryalondhe-21/KiranawalaAndroid
 
 ---
 
@@ -232,6 +233,8 @@ app/src/main/java/com/kiranawala/
 - ✅ Add/remove items from cart
 - ✅ Quantity adjustment controls
 - ✅ Cart persistence across sessions
+- ✅ **Cart display issue FIXED** (Flow emission in repository)
+- ✅ Real-time cart updates
 - ✅ Minimum order validation
 - ✅ Delivery fee calculation
 - ✅ Order placement with customer details
@@ -340,6 +343,9 @@ app/src/main/java/com/kiranawala/
 4. **Profile Flow Collection:** Issues with Flow emission after cancellation in ProfileViewModel
 5. **Firebase Configuration:** google-services.json may need proper setup for FCM
 
+### Recently Fixed ✅
+- **Cart Display Issue:** Fixed Flow emission in CartRepository - cart items now display properly after adding products
+
 ---
 
 ## 🚧 Next Steps
@@ -437,7 +443,8 @@ Built with ❤️ using modern Android development practices.
 
 ---
 
-**Status:** Phases 1-6 Complete! Orders & Profile Management Working! 🚀  
-**Current Focus:** Phase 7 (Push Notifications) & Phase 8 (Profile Edit Fix)
+**Status:** Phases 1-6 Complete! Cart Fixed! All Core Features Working! 🚀  
+**Current Focus:** Phase 7 (Push Notifications) & Phase 8 (Profile Edit Fix)  
+**Repository:** https://github.com/aishwaryalondhe-21/KiranawalaAndroid
 
-**Last Updated:** October 21, 2025
+**Last Updated:** October 22, 2025

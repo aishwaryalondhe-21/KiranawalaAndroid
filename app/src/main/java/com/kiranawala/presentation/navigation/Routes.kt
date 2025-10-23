@@ -10,6 +10,9 @@ sealed class Routes(val route: String) {
     // Main Routes
     object HomeScreen : Routes("home")
     object StoreDetailScreen : Routes("store/{storeId}")
+    object ReviewsScreen : Routes("store/{storeId}/reviews") {
+        fun createRoute(storeId: String) = "store/$storeId/reviews"
+    }
     object CartScreen : Routes("cart")
     object CheckoutScreen : Routes("checkout")
     object PaymentScreen : Routes("payment/{orderId}")

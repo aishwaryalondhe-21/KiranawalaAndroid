@@ -14,9 +14,10 @@ import com.kiranawala.data.local.typeconverter.DateTypeConverter
         ProductEntity::class,
         CartEntity::class,
         OrderEntity::class,
-        OrderItemEntity::class
+        OrderItemEntity::class,
+        StoreReviewEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 @TypeConverters(DateTypeConverter::class)
@@ -26,4 +27,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun productDao(): ProductDao
     abstract fun cartDao(): CartDao
     abstract fun orderDao(): OrderDao
+    abstract fun storeReviewDao(): StoreReviewDao
 }

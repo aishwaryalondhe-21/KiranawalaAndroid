@@ -27,6 +27,10 @@ import com.kiranawala.presentation.viewmodels.CartViewModel
 import com.kiranawala.presentation.viewmodels.ProductsState
 import com.kiranawala.presentation.viewmodels.StoreDetailViewModel
 import com.kiranawala.presentation.viewmodels.StoreState
+import com.kiranawala.presentation.viewmodels.ReviewsViewModel
+import com.kiranawala.presentation.viewmodels.AddReviewState
+import com.kiranawala.presentation.components.review.ReviewsListContent
+import com.kiranawala.presentation.components.review.AddReviewDialog
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,8 +39,10 @@ fun StoreDetailScreen(
     onBackClick: () -> Unit,
     onCartClick: () -> Unit,
     onProductClick: (String) -> Unit,
+    onReviewsClick: (String) -> Unit,
     viewModel: StoreDetailViewModel = hiltViewModel(),
-    cartViewModel: CartViewModel = hiltViewModel()
+    cartViewModel: CartViewModel = hiltViewModel(),
+    reviewsViewModel: ReviewsViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val sessionManager = remember {
@@ -47,6 +53,9 @@ fun StoreDetailScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val addToCartError by cartViewModel.addToCartError.collectAsState()
+    
+    // Reviews state
+    val reviewsState by reviewsViewModel.reviewsState.collectAsState()
     
     // Quantity dialog state
     var showQuantityDialog by remember { mutableStateOf(false) }
@@ -60,7 +69,21 @@ fun StoreDetailScreen(
     LaunchedEffect(Unit) {
         coroutineScope.launch {
             val userId = sessionManager.getCurrentUserId()
-            userId?.let { cartViewModel.initialize(it) }
+            userId?.let { 
+                cartViewModel.initialize(it)
+            }
+            
+            // Load reviews for rating calculation
+            (storeState as? StoreState.Success)?.let { state ->
+                reviewsViewModel.loadReviews(state.store.id)
+            }
+        }
+    }
+    
+    // Load reviews when store loads
+    LaunchedEffect(storeState) {
+        (storeState as? StoreState.Success)?.let { state ->
+            reviewsViewModel.loadReviews(state.store.id)
         }
     }
     
@@ -74,6 +97,7 @@ fun StoreDetailScreen(
             cartViewModel.clearAddToCartError()
         }
     }
+    
     
     Scaffold(
         topBar = {
@@ -95,6 +119,23 @@ fun StoreDetailScreen(
                     }
                 },
                 actions = {
+                    // Write Review Button - Top Right
+                    TextButton(
+                        onClick = {
+                            (storeState as? StoreState.Success)?.let { state ->
+                                onReviewsClick(state.store.id)
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.RateReview,
+                            contentDescription = "Write Review",
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Review")
+                    }
+                    
                     IconButton(onClick = onCartClick) {
                         Badge {
                             Icon(
@@ -108,113 +149,56 @@ fun StoreDetailScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
             // Store Header
-            item {
-                when (storeState) {
-                    is StoreState.Success -> {
-                        StoreHeader(store = (storeState as StoreState.Success).store)
-                    }
-                    is StoreState.Loading -> {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(150.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator()
-                        }
-                    }
-                    is StoreState.Error -> {
-                        // Show error in header
-                    }
-                }
-            }
-            
-            // Search Bar
-            item {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { viewModel.searchProducts(it) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    placeholder = { Text("Search products...") },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search"
-                        )
-                    },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { viewModel.searchProducts("") }) {
-                                Icon(
-                                    imageVector = Icons.Default.Clear,
-                                    contentDescription = "Clear"
-                                )
-                            }
-                        }
-                    },
-                    singleLine = true,
-                    shape = MaterialTheme.shapes.large
-                )
-            }
-            
-            // Category Filter
-            item {
-                val categories = viewModel.getCategories()
-                if (categories.isNotEmpty()) {
-                    CategoryFilter(
-                        categories = categories,
-                        selectedCategory = selectedCategory,
-                        onCategorySelected = { viewModel.filterByCategory(it) },
-                        onClearFilter = { viewModel.clearCategoryFilter() }
+            when (storeState) {
+                is StoreState.Success -> {
+                    val store = (storeState as StoreState.Success).store
+                    val reviews = (reviewsState as? com.kiranawala.presentation.viewmodels.ReviewsState.Success)?.reviews
+                    StoreHeader(
+                        store = store,
+                        reviewCount = reviews?.size ?: 0,
+                        averageRating = calculateAverageRating(reviews ?: emptyList()),
+                        onRatingClick = { onReviewsClick(store.id) }
                     )
                 }
-            }
-            
-            // Products
-            item {
-                when (productsState) {
-                    is ProductsState.Loading -> {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator()
-                        }
-                    }
-                    is ProductsState.Empty -> {
-                        EmptyProductsContent()
-                    }
-                    is ProductsState.Success -> {
-                        val products = (productsState as ProductsState.Success).products
-                        ProductGrid(
-                            products = products,
-                            onProductClick = onProductClick,
-                            onAddToCart = { product ->
-                                selectedProduct = product
-                                showQuantityDialog = true
-                            }
-                        )
-                    }
-                    is ProductsState.Error -> {
-                        val message = (productsState as ProductsState.Error).message
-                        ErrorProductsContent(
-                            message = message,
-                            onRetry = { viewModel.refresh() }
-                        )
+                is StoreState.Loading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(150.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
                     }
                 }
+                is StoreState.Error -> {
+                    // Show error in header
+                }
             }
+            
+            // Products Content
+            ProductsTabContent(
+                searchQuery = searchQuery,
+                onSearchChange = { viewModel.searchProducts(it) },
+                selectedCategory = selectedCategory,
+                categories = viewModel.getCategories(),
+                onCategorySelected = { viewModel.filterByCategory(it) },
+                onClearFilter = { viewModel.clearCategoryFilter() },
+                productsState = productsState,
+                onProductClick = onProductClick,
+                onAddToCart = { product ->
+                    selectedProduct = product
+                    showQuantityDialog = true
+                },
+                onRetry = { viewModel.refresh() }
+            )
         }
+        
         
         // Quantity Dialog
         if (showQuantityDialog && selectedProduct != null) {
@@ -309,7 +293,12 @@ fun QuantityDialog(
 }
 
 @Composable
-fun StoreHeader(store: Store) {
+fun StoreHeader(
+    store: Store,
+    reviewCount: Int,
+    averageRating: Float,
+    onRatingClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -334,20 +323,35 @@ fun StoreHeader(store: Store) {
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(4.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    Surface(
+                        onClick = onRatingClick,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = MaterialTheme.shapes.small,
+                        modifier = Modifier.padding(top = 4.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = "Rating",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            text = "${store.rating} Rating",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = "Rating",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = if (averageRating > 0) String.format("%.1f", averageRating) else store.rating.toString(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                text = "• $reviewCount ratings",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
                     }
                 }
                 
@@ -498,34 +502,16 @@ fun CategoryFilter(
     }
 }
 
-@Composable
-fun ProductGrid(
-    products: List<Product>,
-    onProductClick: (String) -> Unit,
-    onAddToCart: (Product) -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        products.forEach { product ->
-            ProductCard(
-                product = product,
-                onAddToCart = { onAddToCart(product) }
-            )
-        }
-    }
-}
+// Removed - ProductGrid logic moved to LazyColumn items
 
 @Composable
 fun ProductCard(
     product: Product,
-    onAddToCart: () -> Unit
+    onAddToCart: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -684,6 +670,112 @@ fun ErrorProductsContent(
             )
             Button(onClick = onRetry) {
                 Text("Retry")
+            }
+        }
+    }
+}
+
+// Calculate average rating from reviews list
+fun calculateAverageRating(reviews: List<com.kiranawala.domain.models.StoreReview>): Float {
+    if (reviews.isEmpty()) return 0f
+    val sum = reviews.sumOf { it.rating }
+    return sum.toFloat() / reviews.size
+}
+
+@Composable
+fun ProductsTabContent(
+    searchQuery: String,
+    onSearchChange: (String) -> Unit,
+    selectedCategory: String?,
+    categories: List<String>,
+    onCategorySelected: (String) -> Unit,
+    onClearFilter: () -> Unit,
+    productsState: ProductsState,
+    onProductClick: (String) -> Unit,
+    onAddToCart: (Product) -> Unit,
+    onRetry: () -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        // Search Bar
+        item {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = onSearchChange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                placeholder = { Text("Search products...") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search"
+                    )
+                },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { onSearchChange("") }) {
+                            Icon(
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = "Clear"
+                            )
+                        }
+                    }
+                },
+                singleLine = true,
+                shape = MaterialTheme.shapes.large
+            )
+        }
+        
+        // Category Filter
+        item {
+            if (categories.isNotEmpty()) {
+                CategoryFilter(
+                    categories = categories,
+                    selectedCategory = selectedCategory,
+                    onCategorySelected = onCategorySelected,
+                    onClearFilter = onClearFilter
+                )
+            }
+        }
+        
+        // Products
+        when (productsState) {
+            is ProductsState.Loading -> {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+            }
+            is ProductsState.Empty -> {
+                item {
+                    EmptyProductsContent()
+                }
+            }
+            is ProductsState.Success -> {
+                // Product items directly in LazyColumn - NO nested Column
+                items(productsState.products) { product ->
+                    ProductCard(
+                        product = product,
+                        onAddToCart = { onAddToCart(product) },
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                    )
+                }
+            }
+            is ProductsState.Error -> {
+                item {
+                    ErrorProductsContent(
+                        message = productsState.message,
+                        onRetry = onRetry
+                    )
+                }
             }
         }
     }

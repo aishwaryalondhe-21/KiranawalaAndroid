@@ -23,6 +23,7 @@ import kotlin.math.roundToInt
 @Composable
 fun StoreListScreen(
     onStoreClick: (String) -> Unit,
+    onReviewsClick: (String) -> Unit,
     onCartClick: () -> Unit,
     onOrderHistoryClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
@@ -87,6 +88,7 @@ fun StoreListScreen(
                     StoreList(
                         stores = stores,
                         onStoreClick = onStoreClick,
+                        onReviewsClick = onReviewsClick,
                         onRefresh = { viewModel.refresh() }
                     )
                 }
@@ -139,6 +141,7 @@ fun SearchBar(
 fun StoreList(
     stores: List<Store>,
     onStoreClick: (String) -> Unit,
+    onReviewsClick: (String) -> Unit,
     onRefresh: () -> Unit
 ) {
     LazyColumn(
@@ -149,7 +152,8 @@ fun StoreList(
         items(stores, key = { it.id }) { store ->
             StoreCard(
                 store = store,
-                onClick = { onStoreClick(store.id) }
+                onClick = { onStoreClick(store.id) },
+                onRatingClick = { onReviewsClick(store.id) }
             )
         }
     }
@@ -158,7 +162,8 @@ fun StoreList(
 @Composable
 fun StoreCard(
     store: Store,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onRatingClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -175,7 +180,7 @@ fun StoreCard(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
                 Text(
                     text = store.name,
@@ -186,21 +191,30 @@ fun StoreCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                // Clickable Rating Badge - similar to Swiggy
+                Surface(
+                    onClick = onRatingClick,
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = MaterialTheme.shapes.small
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = "Rating",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Text(
-                        text = store.rating.toString(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = "Rating",
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = store.rating.toString(),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
                 }
             }
             

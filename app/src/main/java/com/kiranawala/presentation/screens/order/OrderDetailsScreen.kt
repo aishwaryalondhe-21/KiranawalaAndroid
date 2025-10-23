@@ -182,8 +182,33 @@ private fun OrderDetailsContent(
                         Text(
                             text = order.storeName,
                             style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.weight(1f)
                         )
+                    }
+                    
+                    // Call Store Button
+                    if (order.storePhone.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        
+                        OutlinedButton(
+                            onClick = {
+                                val intent = android.content.Intent(android.content.Intent.ACTION_DIAL).apply {
+                                    data = android.net.Uri.parse("tel:${order.storePhone}")
+                                }
+                                context.startActivity(intent)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Phone,
+                                contentDescription = "Call Store",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Call Store")
+                        }
                     }
                 }
             }

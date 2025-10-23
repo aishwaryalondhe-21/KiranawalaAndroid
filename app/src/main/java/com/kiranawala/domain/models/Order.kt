@@ -7,6 +7,7 @@ data class Order(
     val customerId: String,
     val storeId: String,
     val storeName: String,
+    val storePhone: String = "", // Store contact number for calling
     val totalAmount: Double,
     val deliveryFee: Double,
     val status: String, // Changed from OrderStatus enum to String for flexibility

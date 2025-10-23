@@ -7,6 +7,7 @@ import com.kiranawala.data.repositories.OrderRepositoryImpl
 import com.kiranawala.data.repositories.ProductRepositoryImpl
 import com.kiranawala.data.repositories.ProfileRepositoryImpl
 import com.kiranawala.data.repositories.StoreRepositoryImpl
+import com.kiranawala.data.repositories.StoreReviewRepositoryImpl
 import com.kiranawala.domain.repositories.AddressRepository
 import com.kiranawala.domain.repositories.AuthRepository
 import com.kiranawala.domain.repositories.CartRepository
@@ -14,6 +15,7 @@ import com.kiranawala.domain.repositories.OrderRepository
 import com.kiranawala.domain.repositories.ProductRepository
 import com.kiranawala.domain.repositories.ProfileRepository
 import com.kiranawala.domain.repositories.StoreRepository
+import com.kiranawala.domain.repositories.StoreReviewRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -51,6 +53,10 @@ abstract class RepositoryModule {
     @Singleton
     @Binds
     abstract fun bindAddressRepository(impl: AddressRepositoryImpl): AddressRepository
+    
+    @Singleton
+    @Binds
+    abstract fun bindStoreReviewRepository(impl: StoreReviewRepositoryImpl): StoreReviewRepository
     
     // TODO: Add in Phase 5
     // @Singleton

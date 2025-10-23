@@ -27,6 +27,7 @@ import com.kiranawala.presentation.screens.home.HomeScreen
 import com.kiranawala.presentation.screens.splash.SplashScreen
 import com.kiranawala.presentation.screens.store.StoreDetailScreen
 import com.kiranawala.presentation.screens.store.StoreListScreen
+import com.kiranawala.presentation.screens.store.ReviewsScreen
 import com.kiranawala.presentation.screens.order.OrderHistoryScreen
 import com.kiranawala.presentation.screens.order.OrderDetailsScreen
 import com.kiranawala.presentation.screens.profile.ProfileScreen
@@ -79,6 +80,9 @@ fun KiranaNavigation() {
                 onStoreClick = { storeId ->
                     navController.navigate("store/$storeId")
                 },
+                onReviewsClick = { storeId ->
+                    navController.navigate(Routes.ReviewsScreen.createRoute(storeId))
+                },
                 onCartClick = {
                     navController.navigate(Routes.CartScreen.route)
                 },
@@ -97,15 +101,31 @@ fun KiranaNavigation() {
             arguments = listOf(
                 navArgument("storeId") { type = NavType.StringType }
             )
-        ) {
+        ) { backStackEntry ->
+            val storeId = backStackEntry.arguments?.getString("storeId") ?: ""
             StoreDetailScreen(
                 onBackClick = { navController.navigateUp() },
                 onCartClick = {
                     navController.navigate(Routes.CartScreen.route)
                 },
+                onReviewsClick = { storeId ->
+                    navController.navigate(Routes.ReviewsScreen.createRoute(storeId))
+                },
                 onProductClick = { productId ->
                     // TODO: Navigate to product detail or add to cart
                 }
+            )
+        }
+        
+        // Reviews Screen
+        composable(
+            route = Routes.ReviewsScreen.route,
+            arguments = listOf(
+                navArgument("storeId") { type = NavType.StringType }
+            )
+        ) {
+            ReviewsScreen(
+                onBackClick = { navController.navigateUp() }
             )
         }
         
