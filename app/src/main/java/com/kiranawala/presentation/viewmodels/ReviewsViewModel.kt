@@ -7,6 +7,8 @@ import com.kiranawala.domain.models.StoreReview
 import com.kiranawala.domain.use_cases.review.AddStoreReviewUseCase
 import com.kiranawala.domain.use_cases.review.DeleteStoreReviewUseCase
 import com.kiranawala.domain.use_cases.review.GetStoreReviewsUseCase
+import com.kiranawala.domain.use_cases.review.UpdateStoreReviewUseCase
+import com.kiranawala.domain.repositories.StoreReviewRepository
 import com.kiranawala.utils.logger.KiranaLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +25,9 @@ import javax.inject.Inject
 class ReviewsViewModel @Inject constructor(
     private val getStoreReviewsUseCase: GetStoreReviewsUseCase,
     private val addStoreReviewUseCase: AddStoreReviewUseCase,
-    private val deleteStoreReviewUseCase: DeleteStoreReviewUseCase
+    private val updateStoreReviewUseCase: UpdateStoreReviewUseCase,
+    private val deleteStoreReviewUseCase: DeleteStoreReviewUseCase,
+    private val reviewRepository: StoreReviewRepository
 ) : ViewModel() {
     
     companion object {
@@ -77,7 +81,77 @@ class ReviewsViewModel @Inject constructor(
     }
     
     /**
-     * Add a new review
+     * Check if customer has already reviewed the store
+     */
+    suspend fun getCustomerReview(storeId: String, customerId: String): StoreReview? {
+        return try {
+            reviewRepository.getCustomerReview(storeId, customerId)
+        } catch (e: Exception) {
+            KiranaLogger.e(TAG, "Failed to get customer review", e)
+            null
+        }
+    }
+    
+    /**
+     * Add or update review (upsert)
+     * Checks if customer already has a review and updates it, otherwise creates new one
+     */
+    fun addOrUpdateReview(
+        storeId: String,
+        customerId: String,
+        customerName: String,
+        rating: Int,
+        comment: String?
+    ) {
+        viewModelScope.launch {
+            _addReviewState.value = AddReviewState.Loading
+            
+            // Check if customer already has a review
+            val existingReview = getCustomerReview(storeId, customerId)
+            
+            val result = if (existingReview != null) {
+                // Update existing review
+                KiranaLogger.d(TAG, "Updating existing review: ${existingReview.id}")
+                updateStoreReviewUseCase(
+                    reviewId = existingReview.id,
+                    storeId = storeId,
+                    customerId = customerId,
+                    customerName = customerName,
+                    rating = rating,
+                    comment = comment
+                )
+            } else {
+                // Add new review
+                KiranaLogger.d(TAG, "Adding new review")
+                addStoreReviewUseCase(
+                    storeId = storeId,
+                    customerId = customerId,
+                    customerName = customerName,
+                    rating = rating,
+                    comment = comment
+                )
+            }
+            
+            when (result) {
+                is Result.Success -> {
+                    KiranaLogger.d(TAG, "Review saved successfully")
+                    _addReviewState.value = AddReviewState.Success
+                    // Reload reviews to show the updated one
+                    loadReviews(storeId)
+                }
+                is Result.Error -> {
+                    KiranaLogger.e(TAG, "Failed to save review", result.exception)
+                    _addReviewState.value = AddReviewState.Error(
+                        result.exception.message ?: "Failed to save review"
+                    )
+                }
+                else -> {}
+            }
+        }
+    }
+    
+    /**
+     * Add a new review (legacy - use addOrUpdateReview instead)
      */
     fun addReview(
         storeId: String,

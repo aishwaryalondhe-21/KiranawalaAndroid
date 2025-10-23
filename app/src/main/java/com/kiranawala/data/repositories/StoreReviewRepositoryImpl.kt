@@ -78,6 +78,9 @@ class StoreReviewRepositoryImpl @Inject constructor(
             )
             reviewDao.insertReview(entity)
             
+            // Update store rating after adding review
+            updateStoreRating(storeId)
+            
             Result.Success(reviewId)
         } catch (e: Exception) {
             KiranaLogger.e(TAG, "Failed to add review", e)
@@ -148,6 +151,10 @@ class StoreReviewRepositoryImpl @Inject constructor(
         return try {
             KiranaLogger.d(TAG, "Deleting review: $reviewId")
             
+            // Get store ID before deleting
+            val review = reviewDao.getReviewById(reviewId)
+            val storeId = review?.storeId
+            
             // Delete from Supabase (RLS will ensure customer owns the review)
             supabase.postgrest[TABLE_NAME]
                 .delete {
@@ -159,6 +166,9 @@ class StoreReviewRepositoryImpl @Inject constructor(
             
             // Delete from local cache
             reviewDao.deleteReview(reviewId)
+            
+            // Update store rating after deletion
+            storeId?.let { updateStoreRating(it) }
             
             KiranaLogger.d(TAG, "Review deleted successfully")
             Result.Success(Unit)
@@ -201,6 +211,60 @@ class StoreReviewRepositoryImpl @Inject constructor(
         }
     }
     
+    override suspend fun updateReview(
+        reviewId: String,
+        storeId: String,
+        customerId: String,
+        customerName: String,
+        rating: Int,
+        comment: String?
+    ): Result<Unit> {
+        return try {
+            KiranaLogger.d(TAG, "Updating review: $reviewId")
+            
+            val reviewDto = StoreReviewDto(
+                id = reviewId,
+                store_id = storeId,
+                customer_id = customerId,
+                customer_name = customerName,
+                rating = rating,
+                comment = comment
+            )
+            
+            // Update in Supabase
+            supabase.postgrest[TABLE_NAME]
+                .update(reviewDto) {
+                    filter {
+                        eq("id", reviewId)
+                        eq("customer_id", customerId)
+                    }
+                }
+            
+            // Update local cache
+            val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+            val entity = StoreReviewEntity(
+                id = reviewId,
+                storeId = storeId,
+                customerId = customerId,
+                customerName = customerName,
+                rating = rating,
+                comment = comment,
+                createdAt = now,
+                updatedAt = now
+            )
+            reviewDao.insertReview(entity) // Upsert
+            
+            // Update store rating after review update
+            updateStoreRating(storeId)
+            
+            KiranaLogger.d(TAG, "Review updated successfully")
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            KiranaLogger.e(TAG, "Failed to update review", e)
+            Result.Error(AppException.NetworkException("Failed to update review: ${e.message}"))
+        }
+    }
+    
     override suspend fun updateStoreRating(storeId: String): Result<Float> {
         return try {
             // Fetch all reviews for the store
@@ -216,16 +280,24 @@ class StoreReviewRepositoryImpl @Inject constructor(
             val averageRating = if (reviewDtos.isNotEmpty()) {
                 reviewDtos.map { it.rating }.average().toFloat()
             } else {
-                0f
+                4.5f // Default rating when no reviews
             }
             
-            KiranaLogger.d(TAG, "Store $storeId average rating: $averageRating")
+            // Update stores table with new rating
+            supabase.postgrest["stores"]
+                .update(mapOf("rating" to averageRating)) {
+                    filter {
+                        eq("id", storeId)
+                    }
+                }
+            
+            KiranaLogger.d(TAG, "Store $storeId rating updated to: $averageRating")
             Result.Success(averageRating)
         } catch (e: Exception) {
             KiranaLogger.e(TAG, "Failed to update store rating", e)
             
             // Fallback to local calculation
-            val localRating = reviewDao.getAverageRating(storeId) ?: 0f
+            val localRating = reviewDao.getAverageRating(storeId) ?: 4.5f
             Result.Success(localRating)
         }
     }

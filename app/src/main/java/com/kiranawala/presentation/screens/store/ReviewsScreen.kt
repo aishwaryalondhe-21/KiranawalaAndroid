@@ -81,7 +81,7 @@ fun ReviewsScreen(
             is AddReviewState.Success -> {
                 showAddReviewDialog = false
                 snackbarHostState.showSnackbar(
-                    message = "Review added successfully!",
+                    message = "Review saved successfully!",
                     duration = SnackbarDuration.Short
                 )
                 reviewsViewModel.clearAddReviewState()
@@ -249,7 +249,7 @@ fun ReviewsScreen(
                     storeName = store.name,
                     onDismiss = { showAddReviewDialog = false },
                     onSubmit = { rating, comment ->
-                        reviewsViewModel.addReview(
+                        reviewsViewModel.addOrUpdateReview(
                             storeId = store.id,
                             customerId = currentUserId!!,
                             customerName = currentUserName,

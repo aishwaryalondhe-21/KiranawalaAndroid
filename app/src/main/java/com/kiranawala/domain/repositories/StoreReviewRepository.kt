@@ -51,7 +51,27 @@ interface StoreReviewRepository {
     suspend fun getCustomerReview(storeId: String, customerId: String): StoreReview?
     
     /**
+     * Update an existing review
+     * @param reviewId The review ID to update
+     * @param storeId The store ID
+     * @param customerId The customer ID (must match review owner)
+     * @param customerName The customer's name
+     * @param rating Updated rating from 1-5 stars
+     * @param comment Updated comment text
+     * @return Result indicating success or failure
+     */
+    suspend fun updateReview(
+        reviewId: String,
+        storeId: String,
+        customerId: String,
+        customerName: String,
+        rating: Int,
+        comment: String?
+    ): Result<Unit>
+    
+    /**
      * Calculate and update the average rating for a store
+     * Updates the stores table rating column
      * @param storeId The store ID
      * @return Result with the new average rating
      */

@@ -119,23 +119,6 @@ fun StoreDetailScreen(
                     }
                 },
                 actions = {
-                    // Write Review Button - Top Right
-                    TextButton(
-                        onClick = {
-                            (storeState as? StoreState.Success)?.let { state ->
-                                onReviewsClick(state.store.id)
-                            }
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.RateReview,
-                            contentDescription = "Write Review",
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Review")
-                    }
-                    
                     IconButton(onClick = onCartClick) {
                         Badge {
                             Icon(
