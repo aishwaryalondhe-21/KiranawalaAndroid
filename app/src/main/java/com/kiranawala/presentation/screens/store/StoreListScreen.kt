@@ -3,23 +3,34 @@ package com.kiranawala.presentation.screens.store
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kiranawala.domain.models.Store
+import com.kiranawala.presentation.components.modern.ModernSearchBar
+import com.kiranawala.presentation.components.modern.ImageStoreCard
 import com.kiranawala.presentation.viewmodels.StoreListUiState
 import com.kiranawala.presentation.viewmodels.StoreListViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 fun StoreListScreen(
     onStoreClick: (String) -> Unit,
@@ -31,332 +42,229 @@ fun StoreListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
-    
+
+    // Snackbar state for gesture feedback
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    // Pull-to-refresh state
+    var isRefreshing by remember { mutableStateOf(false) }
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            viewModel.refresh()
+            // Reset after a delay (ViewModel will update state)
+            scope.launch {
+                kotlinx.coroutines.delay(1000)
+                isRefreshing = false
+            }
+        }
+    )
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Nearby Stores") },
+                title = {
+                    Text(
+                        "Nearby Stores",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp
+                        )
+                    )
+                },
                 actions = {
                     IconButton(onClick = onProfileClick) {
                         Icon(
                             imageVector = Icons.Default.Person,
-                            contentDescription = "Profile"
+                            contentDescription = "Profile",
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                     IconButton(onClick = onOrderHistoryClick) {
                         Icon(
                             imageVector = Icons.Default.History,
-                            contentDescription = "Order History"
+                            contentDescription = "Order History",
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                     IconButton(onClick = onCartClick) {
-                        Badge {
-                            Icon(
-                                imageVector = Icons.Default.ShoppingCart,
-                                contentDescription = "Cart"
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.ShoppingCart,
+                            contentDescription = "Cart",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                modifier = Modifier.padding(horizontal = 4.dp)
             )
         }
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .pullRefresh(pullRefreshState)
         ) {
-            // Search Bar
-            SearchBar(
-                query = searchQuery,
-                onQueryChange = { viewModel.searchStores(it) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            )
-            
-            // Content based on state
-            when (uiState) {
-                is StoreListUiState.Loading -> {
-                    LoadingContent()
-                }
-                is StoreListUiState.Empty -> {
-                    EmptyContent(onRefresh = { viewModel.refresh() })
-                }
-                is StoreListUiState.Success -> {
-                    val stores = (uiState as StoreListUiState.Success).stores
-                    StoreList(
-                        stores = stores,
-                        onStoreClick = onStoreClick,
-                        onReviewsClick = onReviewsClick,
-                        onRefresh = { viewModel.refresh() }
-                    )
-                }
-                is StoreListUiState.Error -> {
-                    val message = (uiState as StoreListUiState.Error).message
-                    ErrorContent(
-                        message = message,
-                        onRetry = { viewModel.refresh() }
-                    )
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Modern Search Bar
+                ModernSearchBar(
+                    query = searchQuery,
+                    onQueryChange = { viewModel.searchStores(it) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                )
+
+                // Content based on state
+                when (uiState) {
+                    is StoreListUiState.Loading -> {
+                        LoadingContent()
+                    }
+                    is StoreListUiState.Empty -> {
+                        EmptyContent(onRefresh = { viewModel.refresh() })
+                    }
+                    is StoreListUiState.Success -> {
+                        val stores = (uiState as StoreListUiState.Success).stores
+                        StoreList(
+                            stores = stores,
+                            onStoreClick = onStoreClick,
+                            onReviewsClick = onReviewsClick,
+                            onRefresh = { viewModel.refresh() },
+                            snackbarHostState = snackbarHostState
+                        )
+                    }
+                    is StoreListUiState.Error -> {
+                        val message = (uiState as StoreListUiState.Error).message
+                        ErrorContent(
+                            message = message,
+                            onRetry = { viewModel.refresh() }
+                        )
+                    }
                 }
             }
+
+            // Pull-to-refresh indicator
+            PullRefreshIndicator(
+                refreshing = isRefreshing,
+                state = pullRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter),
+                backgroundColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary
+            )
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SearchBar(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    OutlinedTextField(
-        value = query,
-        onValueChange = onQueryChange,
-        modifier = modifier,
-        placeholder = { Text("Search stores...") },
-        leadingIcon = {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = "Search"
-            )
-        },
-        trailingIcon = {
-            if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChange("") }) {
-                    Icon(
-                        imageVector = Icons.Default.Clear,
-                        contentDescription = "Clear"
-                    )
-                }
-            }
-        },
-        singleLine = true,
-        shape = MaterialTheme.shapes.large
-    )
-}
+// Old SearchBar removed - using ModernSearchBar instead
 
 @Composable
 fun StoreList(
     stores: List<Store>,
     onStoreClick: (String) -> Unit,
     onReviewsClick: (String) -> Unit,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    snackbarHostState: SnackbarHostState
 ) {
+    val scope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
+
+    // Progressive disclosure state
+    var isExpanded by remember { mutableStateOf(false) }
+    val displayedStores = if (isExpanded || stores.size <= 3) stores else stores.take(3)
+    val hasMore = stores.size > 3
+
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            end = 16.dp,
+            top = 8.dp,
+            bottom = 16.dp
+        ),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        items(stores, key = { it.id }) { store ->
-            StoreCard(
+        itemsIndexed(
+            items = displayedStores,
+            key = { _, store -> store.id }
+        ) { index, store ->
+            // Calculate parallax offset based on item position
+            val itemInfo = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }
+            val parallaxOffset = itemInfo?.let {
+                // Calculate offset relative to viewport center
+                val itemCenter = it.offset + (it.size / 2f)
+                val viewportCenter = listState.layoutInfo.viewportEndOffset / 2f
+                (itemCenter - viewportCenter) * 0.3f // Parallax factor
+            } ?: 0f
+
+            // Use image-based card - Zomato/Swiggy style
+            ImageStoreCard(
                 store = store,
-                onClick = { onStoreClick(store.id) },
-                onRatingClick = { onReviewsClick(store.id) }
+                onClick = { onStoreClick(store.id) }
             )
         }
-    }
-}
 
-@Composable
-fun StoreCard(
-    store: Store,
-    onClick: () -> Unit,
-    onRatingClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            // Store Name and Rating
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Text(
-                    text = store.name,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                
-                // Clickable Rating Badge - similar to Swiggy
-                Surface(
-                    onClick = onRatingClick,
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = MaterialTheme.shapes.small
+        // Show More / Show Less Button (Progressive Disclosure)
+        if (hasMore) {
+            item {
+                OutlinedButton(
+                    onClick = { isExpanded = !isExpanded },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                        .height(56.dp),
+                    shape = MaterialTheme.shapes.large,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = "Rating",
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Text(
-                            text = store.rating.toString(),
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (isExpanded)
+                            "Show Less"
+                        else
+                            "Show ${stores.size - 3} More Stores",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // Address
-            Row(
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.LocationOn,
-                    contentDescription = "Location",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
-                )
-                Text(
-                    text = store.address,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            // Store Info Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Minimum Order
-                InfoChip(
-                    icon = Icons.Default.ShoppingBag,
-                    text = "Min ₹${store.minimumOrderValue.roundToInt()}"
-                )
-                
-                // Delivery Fee
-                InfoChip(
-                    icon = Icons.Default.DeliveryDining,
-                    text = "₹${store.deliveryFee.roundToInt()}"
-                )
-                
-                // Delivery Time
-                InfoChip(
-                    icon = Icons.Default.AccessTime,
-                    text = "${store.estimatedDeliveryTime} min"
-                )
-            }
-            
-            // Open/Closed Status
-            if (!store.isOpen) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Currently Closed",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                    fontWeight = FontWeight.Medium
-                )
             }
         }
     }
 }
 
-@Composable
-fun InfoChip(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    text: String
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(16.dp)
-        )
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
+// Duplicate StoreCard removed - using SwipeableStoreCard instead
 
 @Composable
 fun LoadingContent() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            CircularProgressIndicator()
-            Text(
-                text = "Loading nearby stores...",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
+    // Use animated loading state with bouncing dots
+    com.kiranawala.presentation.components.modern.AnimatedLoadingState(
+        message = "Finding fresh stores near you..."
+    )
 }
 
 @Composable
 fun EmptyContent(onRefresh: () -> Unit) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.padding(32.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Store,
-                contentDescription = null,
-                modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = "No stores found nearby",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                text = "Try adjusting your location or search radius",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Button(onClick = onRefresh) {
-                Icon(imageVector = Icons.Default.Refresh, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Refresh")
-            }
-        }
-    }
+    // Use animated empty state
+    com.kiranawala.presentation.components.modern.AnimatedEmptyState(
+        icon = Icons.Default.Store,
+        title = "No fresh finds yet",
+        subtitle = "Lost in the aisles! Try refreshing or check your location.",
+        actionText = "Refresh",
+        onAction = onRefresh
+    )
 }
 
 @Composable
@@ -364,36 +272,10 @@ fun ErrorContent(
     message: String,
     onRetry: () -> Unit
 ) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.padding(32.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Error,
-                contentDescription = null,
-                modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.error
-            )
-            Text(
-                text = "Oops! Something went wrong",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Button(onClick = onRetry) {
-                Icon(imageVector = Icons.Default.Refresh, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Retry")
-            }
-        }
-    }
+    // Use animated error state
+    com.kiranawala.presentation.components.modern.AnimatedErrorState(
+        errorMessage = "Lost in the aisles!",
+        subtitle = message,
+        onRetry = onRetry
+    )
 }

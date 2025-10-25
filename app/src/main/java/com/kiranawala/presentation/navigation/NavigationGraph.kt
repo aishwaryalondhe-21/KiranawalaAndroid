@@ -1,5 +1,7 @@
 package com.kiranawala.presentation.navigation
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
@@ -20,6 +22,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.kiranawala.presentation.components.modern.storeDetailEnterTransition
+import com.kiranawala.presentation.components.modern.storeDetailPopExitTransition
+import com.kiranawala.presentation.components.modern.storeListExitTransition
+import com.kiranawala.presentation.components.modern.storeListPopEnterTransition
 import com.kiranawala.presentation.screens.CartScreen
 import com.kiranawala.presentation.screens.CheckoutScreen
 import com.kiranawala.presentation.screens.auth.PhoneAuthScreen
@@ -95,12 +101,16 @@ fun KiranaNavigation() {
             )
         }
         
-        // Store Detail Screen
+        // Store Detail Screen with Shared Element Transitions
         composable(
             route = Routes.StoreDetailScreen.route,
             arguments = listOf(
                 navArgument("storeId") { type = NavType.StringType }
-            )
+            ),
+            enterTransition = { storeDetailEnterTransition() },
+            exitTransition = { storeListExitTransition() },
+            popEnterTransition = { storeListPopEnterTransition() },
+            popExitTransition = { storeDetailPopExitTransition() }
         ) { backStackEntry ->
             val storeId = backStackEntry.arguments?.getString("storeId") ?: ""
             StoreDetailScreen(

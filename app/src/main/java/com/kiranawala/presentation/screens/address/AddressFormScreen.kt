@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kiranawala.domain.models.Address
+import com.kiranawala.presentation.components.PlacesAutocompleteField
 import com.kiranawala.presentation.viewmodels.AddressViewModel
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
@@ -30,9 +31,9 @@ fun AddressFormScreen(
     var selectedLabel by remember { mutableStateOf(existingAddress?.label ?: "Home") }
     var isDefault by remember { mutableStateOf(existingAddress?.isDefault ?: false) }
     
-    // For now, use default coordinates (Mumbai) - can be replaced with actual location picker
-    val latitude = existingAddress?.latitude ?: 19.0760
-    val longitude = existingAddress?.longitude ?: 72.8777
+    // Store selected location coordinates from Places API
+    var latitude by remember { mutableStateOf(existingAddress?.latitude ?: 19.0760) }
+    var longitude by remember { mutableStateOf(existingAddress?.longitude ?: 72.8777) }
     
     Scaffold(
         topBar = {
@@ -54,17 +55,17 @@ fun AddressFormScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OutlinedTextField(
+            PlacesAutocompleteField(
                 value = addressLine,
-                onValueChange = { addressLine = it },
-                label = { Text("Address Line *") },
-                placeholder = { Text("Enter complete address") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = false,
-                minLines = 2,
-                supportingText = {
-                    Text("Street, landmark, area, city, state, PIN")
-                }
+                onPlaceSelected = { placeDetails ->
+                    addressLine = placeDetails.address
+                    latitude = placeDetails.latitude
+                    longitude = placeDetails.longitude
+                },
+                label = "Address Line *",
+                placeholder = "Click to search address",
+                supportingText = "Search and select your complete address",
+                modifier = Modifier.fillMaxWidth()
             )
             
             OutlinedTextField(

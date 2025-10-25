@@ -8,34 +8,52 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
+/**
+ * Light Mode Color Scheme
+ * Optimized for daytime viewing with warm, comfortable colors
+ */
 private val LightColors = lightColorScheme(
-    primary = KiranaColors.Primary,
+    primary = KiranaColors.PrimaryLight,
     onPrimary = Color.White,
-    primaryContainer = KiranaColors.PrimaryLight,
+    primaryContainer = KiranaColors.PrimaryContainer,
     onPrimaryContainer = KiranaColors.PrimaryVariant,
-    secondary = KiranaColors.Secondary,
+    secondary = KiranaColors.SecondaryLight,
     onSecondary = Color.White,
+    secondaryContainer = Color(0xFFFFF9E6),
+    onSecondaryContainer = KiranaColors.SecondaryVariant,
     error = KiranaColors.Error,
     onError = Color.White,
-    background = KiranaColors.Background,
-    onBackground = KiranaColors.OnBackground,
-    surface = KiranaColors.Surface,
-    onSurface = KiranaColors.OnSurface
+    background = KiranaColors.BackgroundLight,
+    onBackground = KiranaColors.OnBackgroundLight,
+    surface = KiranaColors.SurfaceLight,
+    onSurface = KiranaColors.OnSurfaceLight,
+    onSurfaceVariant = KiranaColors.OnSurfaceVariantLight,
+    outline = KiranaColors.DividerLight,
+    outlineVariant = KiranaColors.Gray200
 )
 
+/**
+ * Dark Mode Color Scheme  
+ * OLED-optimized true black for battery savings and reduced eye strain
+ */
 private val DarkColors = darkColorScheme(
-    primary = KiranaColors.PrimaryLight,
-    onPrimary = KiranaColors.PrimaryVariant,
-    primaryContainer = KiranaColors.Primary,
+    primary = KiranaColors.PrimaryDark,
+    onPrimary = Color.Black,
+    primaryContainer = Color(0xFF1A3A1A),
     onPrimaryContainer = Color.White,
-    secondary = KiranaColors.Secondary,
+    secondary = KiranaColors.SecondaryDark,
     onSecondary = Color.Black,
+    secondaryContainer = Color(0xFF3A3316),
+    onSecondaryContainer = Color.White,
     error = KiranaColors.Error,
     onError = Color.White,
-    background = Color(0xFF121212),
-    onBackground = Color.White,
-    surface = Color(0xFF1E1E1E),
-    onSurface = Color.White
+    background = KiranaColors.BackgroundDark,
+    onBackground = KiranaColors.OnBackgroundDark,
+    surface = KiranaColors.SurfaceDark,
+    onSurface = KiranaColors.OnSurfaceDark,
+    onSurfaceVariant = KiranaColors.OnSurfaceVariantDark,
+    outline = KiranaColors.DividerDark,
+    outlineVariant = Color(0xFF1A1A1A)
 )
 
 @Composable

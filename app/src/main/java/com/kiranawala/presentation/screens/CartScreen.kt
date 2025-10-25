@@ -1,19 +1,24 @@
 package com.kiranawala.presentation.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kiranawala.domain.models.Cart
 import com.kiranawala.domain.models.CartItem
+import com.kiranawala.presentation.components.modern.*
 import com.kiranawala.presentation.viewmodels.CartState
 import com.kiranawala.presentation.viewmodels.CartViewModel
 
@@ -34,7 +39,15 @@ fun CartScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Shopping Cart") },
+                title = {
+                    Text(
+                        "Shopping Cart",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp
+                        )
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, "Back")
@@ -46,54 +59,63 @@ fun CartScreen(
                             Icon(Icons.Default.Delete, "Clear Cart")
                         }
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             )
         }
     ) { padding ->
-        when (val state = cartState) {
-            is CartState.Loading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            when (val state = cartState) {
+                is CartState.Loading -> {
+                    ModernEmptyState(
+                        icon = Icons.Default.ShoppingCart,
+                        title = "Loading Cart",
+                        description = "Please wait while we load your cart",
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
-            }
-            is CartState.Empty -> {
-                EmptyCartView(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    onNavigateBack = onNavigateBack
-                )
-            }
-            is CartState.Success -> {
-                CartContent(
-                    cart = state.cart,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    onUpdateQuantity = { productId, quantity ->
-                        viewModel.updateQuantity(productId, quantity)
-                    },
-                    onRemoveItem = { productId ->
-                        viewModel.removeFromCart(productId)
-                    },
-                    onCheckout = {
-                        onNavigateToCheckout(state.cart)
-                    }
-                )
-            }
-            is CartState.Error -> {
-                ErrorView(
-                    message = state.message,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    onRetry = { viewModel.initialize(customerId) }
-                )
+                is CartState.Empty -> {
+                    ModernEmptyState(
+                        icon = Icons.Default.ShoppingCart,
+                        title = "Your Cart is Empty",
+                        description = "Add items from stores to get started",
+                        modifier = Modifier.fillMaxSize(),
+                        actionText = "Browse Stores",
+                        onActionClick = onNavigateBack
+                    )
+                }
+                is CartState.Success -> {
+                    CartContent(
+                        cart = state.cart,
+                        modifier = Modifier.fillMaxSize(),
+                        onUpdateQuantity = { productId, quantity ->
+                            viewModel.updateQuantity(productId, quantity)
+                        },
+                        onRemoveItem = { productId ->
+                            viewModel.removeFromCart(productId)
+                        },
+                        onCheckout = {
+                            onNavigateToCheckout(state.cart)
+                        }
+                    )
+                }
+                is CartState.Error -> {
+                    ModernEmptyState(
+                        icon = Icons.Default.Error,
+                        title = "Failed to Load Cart",
+                        description = state.message,
+                        modifier = Modifier.fillMaxSize(),
+                        actionText = "Retry",
+                        onActionClick = { viewModel.initialize(customerId) }
+                    )
+                }
             }
         }
     }

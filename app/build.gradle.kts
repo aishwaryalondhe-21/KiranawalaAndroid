@@ -78,9 +78,11 @@ dependencies {
     implementation(platform("androidx.compose:compose-bom:2024.02.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material") // For pull-refresh
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.runtime:runtime")
     implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.ui:ui-text-google-fonts:1.6.1") // Google Fonts
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
     
@@ -119,6 +121,12 @@ dependencies {
     
     // Image Loading
     implementation("io.coil-kt:coil-compose:2.5.0")
+
+    // Lottie Animations
+    implementation("com.airbnb.android:lottie-compose:6.3.0")
+    
+    // Google Places SDK
+    implementation("com.google.android.libraries.places:places:3.5.0")
     
     // Local Notifications (Firebase can be added later)
     // implementation("com.google.firebase:firebase-messaging:23.4.1")

@@ -102,84 +102,136 @@ fun StoreDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    when (storeState) {
-                        is StoreState.Success -> {
-                            Text((storeState as StoreState.Success).store.name)
-                        }
-                        else -> Text("Store Details")
-                    }
-                },
+                title = { Text("") }, // Empty title, info is in scrollable content
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
                 actions = {
                     IconButton(onClick = onCartClick) {
-                        Badge {
-                            Icon(
-                                imageVector = Icons.Default.ShoppingCart,
-                                contentDescription = "Cart"
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.ShoppingCart,
+                            contentDescription = "Cart",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Store Header
             when (storeState) {
                 is StoreState.Success -> {
                     val store = (storeState as StoreState.Success).store
-                    val reviews = (reviewsState as? com.kiranawala.presentation.viewmodels.ReviewsState.Success)?.reviews
-                    StoreHeader(
-                        store = store,
-                        reviewCount = reviews?.size ?: 0,
-                        averageRating = calculateAverageRating(reviews ?: emptyList()),
-                        onRatingClick = { onReviewsClick(store.id) }
-                    )
+                    
+                    when (productsState) {
+                        is ProductsState.Success -> {
+                            ModernStoreDetailContent(
+                                store = store,
+                                products = (productsState as ProductsState.Success).products,
+                                categories = viewModel.getCategories(),
+                                searchQuery = searchQuery,
+                                selectedCategory = selectedCategory,
+                                onSearchChange = { viewModel.searchProducts(it) },
+                                onCategorySelected = { viewModel.filterByCategory(it) },
+                                onClearFilter = { viewModel.clearCategoryFilter() },
+                                onAddToCart = { product ->
+                                    selectedProduct = product
+                                    showQuantityDialog = true
+                                },
+                                onProductClick = onProductClick,
+                                onReviewsClick = { onReviewsClick(store.id) }
+                            )
+                        }
+                        is ProductsState.Empty -> {
+                            ModernStoreDetailContent(
+                                store = store,
+                                products = emptyList(),
+                                categories = viewModel.getCategories(),
+                                searchQuery = searchQuery,
+                                selectedCategory = selectedCategory,
+                                onSearchChange = { viewModel.searchProducts(it) },
+                                onCategorySelected = { viewModel.filterByCategory(it) },
+                                onClearFilter = { viewModel.clearCategoryFilter() },
+                                onAddToCart = { product ->
+                                    selectedProduct = product
+                                    showQuantityDialog = true
+                                },
+                                onProductClick = onProductClick,
+                                onReviewsClick = { onReviewsClick(store.id) }
+                            )
+                        }
+                        is ProductsState.Loading -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
+                        is ProductsState.Error -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text = (productsState as ProductsState.Error).message,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                    Button(onClick = { viewModel.refresh() }) {
+                                        Text("Retry")
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
                 is StoreState.Loading -> {
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(150.dp),
+                        modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator()
                     }
                 }
                 is StoreState.Error -> {
-                    // Show error in header
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = (storeState as StoreState.Error).message,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Button(onClick = { viewModel.refresh() }) {
+                                Text("Retry")
+                            }
+                        }
+                    }
                 }
             }
-            
-            // Products Content
-            ProductsTabContent(
-                searchQuery = searchQuery,
-                onSearchChange = { viewModel.searchProducts(it) },
-                selectedCategory = selectedCategory,
-                categories = viewModel.getCategories(),
-                onCategorySelected = { viewModel.filterByCategory(it) },
-                onClearFilter = { viewModel.clearCategoryFilter() },
-                productsState = productsState,
-                onProductClick = onProductClick,
-                onAddToCart = { product ->
-                    selectedProduct = product
-                    showQuantityDialog = true
-                },
-                onRetry = { viewModel.refresh() }
-            )
         }
         
         
