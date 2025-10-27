@@ -24,6 +24,7 @@ sealed class Routes(val route: String) {
     object ProfileScreen : Routes("profile")
     object ProfileEditScreen : Routes("profile/edit")
     object AddressListScreen : Routes("addresses")
+    object SelectLocationScreen : Routes("location/select")
     object AddressFormScreen : Routes("address/form?addressId={addressId}&autoPick={autoPick}") {
         fun createRoute(addressId: String? = null, autoPick: Boolean = false): String {
             val params = mutableListOf<String>()

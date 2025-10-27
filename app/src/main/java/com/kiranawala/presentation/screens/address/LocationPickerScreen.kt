@@ -4,6 +4,7 @@ import android.content.Context
 import android.location.Address
 import android.location.Geocoder
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -94,6 +95,9 @@ fun LocationPickerScreen(
     var displayedAddress by remember { mutableStateOf(initialQuery.orEmpty()) }
     var isGeocoding by remember { mutableStateOf(false) }
     var geocodingError by remember { mutableStateOf<String?>(null) }
+
+    // Handle Android system back button
+    BackHandler(onBack = onNavigateBack)
 
     LaunchedEffect(cameraPositionState) {
         snapshotFlow { cameraPositionState.isMoving }

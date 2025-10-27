@@ -12,6 +12,7 @@ import com.kiranawala.domain.repositories.StoreRepository
 import com.kiranawala.domain.use_cases.address.AddressValidationErrors
 import com.kiranawala.domain.use_cases.address.AddressValidationRequest
 import com.kiranawala.domain.use_cases.address.ValidateAddressUseCase
+import com.kiranawala.utils.LocationAddress
 import com.kiranawala.utils.logger.KiranaLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -49,6 +50,13 @@ class AddressViewModel @Inject constructor(
 
     private val _formState = MutableStateFlow(AddressFormState())
     val formState: StateFlow<AddressFormState> = _formState.asStateFlow()
+
+    // Current location state for location header
+    private val _currentLocation = MutableStateFlow<LocationAddress?>(null)
+    val currentLocation: StateFlow<LocationAddress?> = _currentLocation.asStateFlow()
+
+    private val _isDetectingLocation = MutableStateFlow(false)
+    val isDetectingLocation: StateFlow<Boolean> = _isDetectingLocation.asStateFlow()
 
     private var currentUserId: String? = null
     private var addressCollectionJob: Job? = null
@@ -318,6 +326,41 @@ class AddressViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+
+    // Current Location Management
+    fun setCurrentLocation(location: LocationAddress) {
+        _currentLocation.value = location
+        KiranaLogger.d(TAG, "Current location set to: ${location.city}, ${location.state}")
+    }
+
+    fun setLocationDetecting(isDetecting: Boolean) {
+        _isDetectingLocation.value = isDetecting
+    }
+
+    fun getCurrentLocationValue(): LocationAddress? {
+        return _currentLocation.value
+    }
+
+    /**
+     * Initialize current location from default address if available
+     */
+    fun initializeCurrentLocationFromDefaultAddress() {
+        viewModelScope.launch {
+            val defaultAddr = _uiState.value.defaultAddress
+            if (defaultAddr != null && _currentLocation.value == null) {
+                val locationAddress = LocationAddress(
+                    formattedAddress = defaultAddr.formattedAddress,
+                    city = defaultAddr.city,
+                    state = defaultAddr.state,
+                    country = "",
+                    latitude = defaultAddr.latitude,
+                    longitude = defaultAddr.longitude
+                )
+                setCurrentLocation(locationAddress)
+                KiranaLogger.d(TAG, "Initialized location from default address")
+            }
+        }
     }
 }
 

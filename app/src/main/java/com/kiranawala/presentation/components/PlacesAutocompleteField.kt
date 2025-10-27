@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -82,6 +83,30 @@ fun PlacesAutocompleteField(
                 imageVector = Icons.Default.LocationOn,
                 contentDescription = "Location"
             )
+        },
+        trailingIcon = {
+            IconButton(
+                onClick = {
+                    val fields = listOf(
+                        Place.Field.ID,
+                        Place.Field.NAME,
+                        Place.Field.ADDRESS,
+                        Place.Field.LAT_LNG
+                    )
+                    
+                    val intent = Autocomplete
+                        .IntentBuilder(AutocompleteActivityMode.FULLSCREEN, fields)
+                        .build(context)
+                    
+                    launcher.launch(intent)
+                }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Search location",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
         },
         supportingText = if (showError && currentErrorMessage.isNotEmpty()) {
             { Text(currentErrorMessage) }

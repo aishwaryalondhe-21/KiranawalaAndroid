@@ -79,33 +79,6 @@ fun ProfileScreen(
                 )
             }
             
-            // Quick Actions Grid
-            item {
-                ModernSectionHeader(title = "Quick Access")
-            }
-            
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    ModernQuickActionCard(
-                        icon = Icons.Default.History,
-                        title = "Orders",
-                        subtitle = "View history",
-                        onClick = onOrderHistoryClick,
-                        modifier = Modifier.weight(1f)
-                    )
-                    ModernQuickActionCard(
-                        icon = Icons.Default.LocationOn,
-                        title = "Addresses",
-                        subtitle = "Manage",
-                        onClick = onAddressManagementClick,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-            
             // Settings Section
             item {
                 ModernSectionHeader(title = "Preferences")

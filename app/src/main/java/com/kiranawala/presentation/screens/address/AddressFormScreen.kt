@@ -103,6 +103,7 @@ fun AddressFormScreen(
     var locationPrompted by remember { mutableStateOf(false) }
     var geocodeError by remember { mutableStateOf<String?>(null) }
     var pendingQuery by remember { mutableStateOf<String?>(null) }
+    var locationDataProcessed by remember { mutableStateOf(false) }
 
     LaunchedEffect(existingAddress?.id) {
         viewModel.initializeForm(existingAddress?.id)
@@ -116,32 +117,40 @@ fun AddressFormScreen(
         }
     }
 
-    val savedFormatted = savedStateHandle?.get<String>(KEY_SELECTED_FORMATTED_ADDRESS)
-    val savedLat = savedStateHandle?.get<Double>(KEY_SELECTED_LATITUDE)
-    val savedLng = savedStateHandle?.get<Double>(KEY_SELECTED_LONGITUDE)
+    // Process location selection from LocationPickerScreen (runs once per composition)
+    LaunchedEffect(Unit) {
+        savedStateHandle?.let { handle ->
+            // Observe for location data from LocationPickerScreen
+            val savedFormatted = handle.get<String>(KEY_SELECTED_FORMATTED_ADDRESS)
+            val savedLat = handle.get<Double>(KEY_SELECTED_LATITUDE)
+            val savedLng = handle.get<Double>(KEY_SELECTED_LONGITUDE)
+            
+            if (!savedFormatted.isNullOrBlank() && savedLat != null && savedLng != null && !locationDataProcessed) {
+                val selection = LocationSelection(
+                    formattedAddress = savedFormatted,
+                    addressLine1 = handle.get<String>(KEY_SELECTED_ADDRESS_LINE1).orEmpty(),
+                    addressLine2 = handle.get<String>(KEY_SELECTED_ADDRESS_LINE2),
+                    city = handle.get<String>(KEY_SELECTED_CITY).orEmpty(),
+                    state = handle.get<String>(KEY_SELECTED_STATE).orEmpty(),
+                    pincode = handle.get<String>(KEY_SELECTED_PINCODE).orEmpty(),
+                    latitude = savedLat,
+                    longitude = savedLng
+                )
+                
+                // Update ViewModel with selected location
+                viewModel.onLocationSelected(selection)
+                locationDataProcessed = true
 
-    LaunchedEffect(savedFormatted, savedLat, savedLng) {
-        if (!savedFormatted.isNullOrBlank() && savedLat != null && savedLng != null && savedStateHandle != null) {
-            val selection = LocationSelection(
-                formattedAddress = savedFormatted,
-                addressLine1 = savedStateHandle.get<String>(KEY_SELECTED_ADDRESS_LINE1).orEmpty(),
-                addressLine2 = savedStateHandle.get<String>(KEY_SELECTED_ADDRESS_LINE2),
-                city = savedStateHandle.get<String>(KEY_SELECTED_CITY).orEmpty(),
-                state = savedStateHandle.get<String>(KEY_SELECTED_STATE).orEmpty(),
-                pincode = savedStateHandle.get<String>(KEY_SELECTED_PINCODE).orEmpty(),
-                latitude = savedLat,
-                longitude = savedLng
-            )
-            viewModel.onLocationSelected(selection)
-
-            savedStateHandle.remove<String>(KEY_SELECTED_FORMATTED_ADDRESS)
-            savedStateHandle.remove<String>(KEY_SELECTED_ADDRESS_LINE1)
-            savedStateHandle.remove<String>(KEY_SELECTED_ADDRESS_LINE2)
-            savedStateHandle.remove<String>(KEY_SELECTED_CITY)
-            savedStateHandle.remove<String>(KEY_SELECTED_STATE)
-            savedStateHandle.remove<String>(KEY_SELECTED_PINCODE)
-            savedStateHandle.remove<Double>(KEY_SELECTED_LATITUDE)
-            savedStateHandle.remove<Double>(KEY_SELECTED_LONGITUDE)
+                // Clear savedStateHandle after successful processing
+                handle.remove<String>(KEY_SELECTED_FORMATTED_ADDRESS)
+                handle.remove<String>(KEY_SELECTED_ADDRESS_LINE1)
+                handle.remove<String>(KEY_SELECTED_ADDRESS_LINE2)
+                handle.remove<String>(KEY_SELECTED_CITY)
+                handle.remove<String>(KEY_SELECTED_STATE)
+                handle.remove<String>(KEY_SELECTED_PINCODE)
+                handle.remove<Double>(KEY_SELECTED_LATITUDE)
+                handle.remove<Double>(KEY_SELECTED_LONGITUDE)
+            }
         }
     }
 

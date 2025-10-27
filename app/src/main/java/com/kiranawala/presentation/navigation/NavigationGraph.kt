@@ -41,6 +41,7 @@ import com.kiranawala.presentation.screens.profile.ProfileEditScreen
 import com.kiranawala.presentation.screens.address.AddressListScreen
 import com.kiranawala.presentation.screens.address.AddressFormScreen
 import com.kiranawala.presentation.screens.address.LocationPickerScreen
+import com.kiranawala.presentation.screens.location.SelectLocationScreen
 import com.kiranawala.presentation.screens.order.OrderSuccessScreen
 import com.kiranawala.presentation.screens.settings.AboutUsScreen
 import com.kiranawala.utils.SessionManager
@@ -98,6 +99,10 @@ fun KiranaNavigation() {
                 },
                 onProfileClick = {
                     navController.navigate(Routes.ProfileScreen.route)
+                },
+                onLocationClick = {
+                    // Navigate to SelectLocationScreen (Phase 3 Complete)
+                    navController.navigate(Routes.SelectLocationScreen.route)
                 }
             )
         }
@@ -336,6 +341,20 @@ fun KiranaNavigation() {
                 },
                 onEditAddress = { address ->
                     navController.navigate(Routes.AddressFormScreen.createRoute(address.id))
+                }
+            )
+        }
+        
+        // Select Location Screen (Phase 3)
+        composable(Routes.SelectLocationScreen.route) {
+            SelectLocationScreen(
+                onNavigateBack = { navController.navigateUp() },
+                onAddAddress = {
+                    navController.navigate(Routes.AddressFormScreen.createRoute(autoPick = true))
+                },
+                onLocationSelected = { locationAddress ->
+                    // Location is already set in ViewModel by SelectLocationScreen
+                    // Navigation back happens automatically
                 }
             )
         }

@@ -1,5 +1,6 @@
 package com.kiranawala.presentation.screens.store
 
+import android.Manifest
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,21 +17,27 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.kiranawala.domain.models.Store
+import com.kiranawala.presentation.components.LocationHeader
 import com.kiranawala.presentation.components.modern.ModernSearchBar
 import com.kiranawala.presentation.components.modern.ImageStoreCard
+import com.kiranawala.presentation.viewmodels.AddressViewModel
 import com.kiranawala.presentation.viewmodels.StoreListUiState
 import com.kiranawala.presentation.viewmodels.StoreListViewModel
+import com.kiranawala.utils.LocationUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class, ExperimentalPermissionsApi::class)
 @Composable
 fun StoreListScreen(
     onStoreClick: (String) -> Unit,
@@ -38,14 +45,52 @@ fun StoreListScreen(
     onCartClick: () -> Unit,
     onOrderHistoryClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
-    viewModel: StoreListViewModel = hiltViewModel()
+    onLocationClick: () -> Unit = {},
+    viewModel: StoreListViewModel = hiltViewModel(),
+    addressViewModel: AddressViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
 
+    // Location state
+    val currentLocation by addressViewModel.currentLocation.collectAsState()
+    val isDetectingLocation by addressViewModel.isDetectingLocation.collectAsState()
+    val context = LocalContext.current
+
     // Snackbar state for gesture feedback
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+
+    // Location permissions
+    val locationPermissions = rememberMultiplePermissionsState(
+        permissions = listOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+    )
+
+    // Auto-detect location on first launch
+    LaunchedEffect(Unit) {
+        // First try to initialize from default address
+        addressViewModel.initializeCurrentLocationFromDefaultAddress()
+        
+        // If no location set and permissions granted, detect GPS location
+        if (currentLocation == null && LocationUtils.hasLocationPermission(context)) {
+            addressViewModel.setLocationDetecting(true)
+            val gpsLocation = LocationUtils.getCurrentLocation(context)
+            if (gpsLocation != null) {
+                val locationAddress = LocationUtils.reverseGeocode(
+                    context,
+                    gpsLocation.latitude,
+                    gpsLocation.longitude
+                )
+                if (locationAddress != null) {
+                    addressViewModel.setCurrentLocation(locationAddress)
+                }
+            }
+            addressViewModel.setLocationDetecting(false)
+        }
+    }
 
     // Pull-to-refresh state
     var isRefreshing by remember { mutableStateOf(false) }
@@ -113,6 +158,13 @@ fun StoreListScreen(
                 .pullRefresh(pullRefreshState)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
+                // Location Header
+                LocationHeader(
+                    currentLocation = currentLocation,
+                    isLoading = isDetectingLocation,
+                    onLocationClick = onLocationClick
+                )
+
                 // Modern Search Bar
                 ModernSearchBar(
                     query = searchQuery,
