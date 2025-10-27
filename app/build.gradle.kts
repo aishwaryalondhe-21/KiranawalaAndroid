@@ -23,6 +23,7 @@ android {
         // Supabase Configuration
         buildConfigField("String", "SUPABASE_URL", "\"https://fnblhmddgregqfafqkeh.supabase.co\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZuYmxobWRkZ3JlZ3FmYWZxa2VoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3MjI5OTQsImV4cCI6MjA3NjI5ODk5NH0.CPmWxu5-VYKDhVlQGC5C8btnKpW_SeWPfp3vT19EbEc\"")
+        buildConfigField("String", "MAPS_API_KEY", "\"AIzaSyAU8kwc-Ih9VEOJB3QnEll1YC-I97W3yQw\"")
     }
 
     buildTypes {
@@ -127,6 +128,8 @@ dependencies {
     
     // Google Places SDK
     implementation("com.google.android.libraries.places:places:3.5.0")
+    implementation("com.google.android.gms:play-services-maps:18.2.0")
+    implementation("com.google.maps.android:maps-compose:4.3.0")
     
     // Local Notifications (Firebase can be added later)
     // implementation("com.google.firebase:firebase-messaging:23.4.1")
