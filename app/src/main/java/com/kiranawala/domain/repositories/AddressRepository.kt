@@ -55,4 +55,19 @@ interface AddressRepository {
      * @return Result indicating success or error
      */
     suspend fun setDefaultAddress(addressId: String, userId: String): Result<Unit>
+
+    /**
+     * Observe recent location searches made by the user
+     */
+    fun observeRecentSearches(): Flow<List<String>>
+
+    /**
+     * Persist a location search for quick recall
+     */
+    suspend fun addRecentSearch(query: String)
+
+    /**
+     * Force refresh addresses from remote source
+     */
+    suspend fun refreshAddresses(userId: String): Result<Unit>
 }

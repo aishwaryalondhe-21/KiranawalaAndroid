@@ -1,12 +1,23 @@
 package com.kiranawala.data.local.preferences
 
 import android.content.Context
-import androidx.datastore.preferences.core.*
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 private val Context.dataStore by preferencesDataStore("kiranawala_prefs")
+
+private val jsonFormatter = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+private val recentSearchSerializer = ListSerializer(String.serializer())
 
 class PreferencesManager(private val context: Context) {
     
@@ -19,6 +30,7 @@ class PreferencesManager(private val context: Context) {
         val LAST_LOCATION_LNG = doublePreferencesKey("last_location_lng")
         val FCM_TOKEN = stringPreferencesKey("fcm_token")
         val THEME_MODE = stringPreferencesKey("theme_mode") // "light", "dark", "system"
+        val ADDRESS_RECENT_SEARCHES = stringPreferencesKey("address_recent_searches")
     }
     
     val authToken: Flow<String?> = context.dataStore.data.map { preferences ->
@@ -43,6 +55,13 @@ class PreferencesManager(private val context: Context) {
     
     val themeMode: Flow<String> = context.dataStore.data.map { preferences ->
         preferences[THEME_MODE] ?: "system"
+    }
+
+    val recentAddressSearches: Flow<List<String>> = context.dataStore.data.map { preferences ->
+        preferences[ADDRESS_RECENT_SEARCHES]?.let { stored ->
+            runCatching { jsonFormatter.decodeFromString(recentSearchSerializer, stored) }
+                .getOrNull()
+        } ?: emptyList()
     }
     
     suspend fun saveAuthToken(token: String) {
@@ -87,6 +106,22 @@ class PreferencesManager(private val context: Context) {
     suspend fun saveThemeMode(mode: String) {
         context.dataStore.edit { preferences ->
             preferences[THEME_MODE] = mode
+        }
+    }
+
+    suspend fun addRecentAddressSearch(query: String) {
+        val sanitized = query.trim()
+        if (sanitized.isEmpty()) return
+        context.dataStore.edit { preferences ->
+            val existing = preferences[ADDRESS_RECENT_SEARCHES]?.let { stored ->
+                runCatching { jsonFormatter.decodeFromString(recentSearchSerializer, stored) }
+                    .getOrDefault(emptyList())
+            } ?: emptyList()
+            val updated = listOf(sanitized) + existing.filterNot { it.equals(sanitized, ignoreCase = true) }
+            preferences[ADDRESS_RECENT_SEARCHES] = jsonFormatter.encodeToString(
+                recentSearchSerializer,
+                updated.take(5)
+            )
         }
     }
     

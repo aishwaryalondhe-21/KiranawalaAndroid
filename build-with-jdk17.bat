@@ -1,5 +1,5 @@
 @echo off
-SET JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-17.0.16.8-hotspot
+SET "JAVA_HOME=C:\Program Files\Java\jdk-17.0.1"
 SET PATH=%JAVA_HOME%\bin;%PATH%
 echo Using Java from: %JAVA_HOME%
 java -version

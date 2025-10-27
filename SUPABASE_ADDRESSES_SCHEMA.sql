@@ -3,20 +3,39 @@
 -- Phase 1: Multiple Addresses per User
 -- ============================================
 
--- Create addresses table
+-- Create addresses table (v2 schema)
 CREATE TABLE IF NOT EXISTS public.addresses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    address_line TEXT NOT NULL,
-    building_name TEXT,
-    flat_number TEXT,
+    address_type TEXT NOT NULL DEFAULT 'HOME', -- HOME, WORK, OTHER
+    formatted_address TEXT NOT NULL,
+    address_line1 TEXT NOT NULL,
+    address_line2 TEXT,
+    city TEXT NOT NULL,
+    state TEXT NOT NULL,
+    pincode TEXT NOT NULL,
     latitude DOUBLE PRECISION NOT NULL,
     longitude DOUBLE PRECISION NOT NULL,
-    label TEXT NOT NULL DEFAULT 'Home', -- Home, Work, Other
+    receiver_name TEXT NOT NULL,
+    receiver_phone TEXT NOT NULL,
     is_default BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Optional: constrain address_type to allowed values
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'addresses_address_type_check'
+    ) THEN
+        ALTER TABLE public.addresses
+            ADD CONSTRAINT addresses_address_type_check
+            CHECK (address_type IN ('HOME', 'WORK', 'OTHER'));
+    END IF;
+END $$;
 
 -- Create index for user_id lookup
 CREATE INDEX IF NOT EXISTS idx_addresses_user_id ON public.addresses(user_id);
@@ -104,8 +123,50 @@ CREATE TRIGGER addresses_single_default
 
 -- Note: Replace 'YOUR_USER_UUID' with actual user UUID from auth.users
 /*
-INSERT INTO public.addresses (user_id, address_line, building_name, flat_number, latitude, longitude, label, is_default)
+INSERT INTO public.addresses (
+    user_id,
+    address_type,
+    formatted_address,
+    address_line1,
+    address_line2,
+    city,
+    state,
+    pincode,
+    latitude,
+    longitude,
+    receiver_name,
+    receiver_phone,
+    is_default
+)
 VALUES 
-    ('YOUR_USER_UUID', '123 Main Street, City', 'Sunrise Apartments', 'A-101', 19.0760, 72.8777, 'Home', true),
-    ('YOUR_USER_UUID', '456 Office Road, Business District', 'Tech Tower', 'Floor 5', 19.1136, 72.8697, 'Work', false);
+    (
+        'YOUR_USER_UUID',
+        'HOME',
+        '123 Main Street, Mumbai, Maharashtra 400001',
+        '123 Main Street',
+        'Fort',
+        'Mumbai',
+        'Maharashtra',
+        '400001',
+        19.0760,
+        72.8777,
+        'Aishwarya Sharma',
+        '+919999999999',
+        true
+    ),
+    (
+        'YOUR_USER_UUID',
+        'WORK',
+        '456 Office Road, Bengaluru, Karnataka 560001',
+        '456 Office Road',
+        'Business District',
+        'Bengaluru',
+        'Karnataka',
+        '560001',
+        12.9716,
+        77.5946,
+        'Aishwarya Sharma',
+        '+919988887777',
+        false
+    );
 */

@@ -129,7 +129,7 @@ private fun ModernOrderHistoryContent(
     LazyColumn(
         modifier = modifier,
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(1.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
             ModernSectionHeader(
@@ -138,7 +138,7 @@ private fun ModernOrderHistoryContent(
                 onActionClick = onRefresh
             )
         }
-        
+
         items(orders, key = { it.id }) { order ->
             ModernExpandableOrderCard(
                 order = order,
@@ -149,9 +149,9 @@ private fun ModernOrderHistoryContent(
                 onClick = { onOrderClick(order.id) }
             )
         }
-        
+
         item {
-            Spacer(modifier = Modifier.height(1.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -206,9 +206,9 @@ private fun ModernExpandableOrderCard(
                     
                     ModernOrderStatusChip(status = order.status, isDark = isDark)
                 }
-                
-                Spacer(modifier = Modifier.height(2.dp))
-                
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 // Summary Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -216,11 +216,11 @@ private fun ModernExpandableOrderCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
@@ -235,9 +235,9 @@ private fun ModernExpandableOrderCard(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        
+
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
@@ -253,7 +253,7 @@ private fun ModernExpandableOrderCard(
                             )
                         }
                     }
-                    
+
                     Text(
                         text = "₹${String.format("%.2f", order.totalAmount)}",
                         style = MaterialTheme.typography.titleLarge.copy(
@@ -275,25 +275,27 @@ private fun ModernExpandableOrderCard(
                     ),
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                
-                Spacer(modifier = Modifier.height(1.dp))
-                
-                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     order.items.forEach { item ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 1.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .heightIn(min = 40.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(2.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
                         ) {
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
                                 color = MaterialTheme.colorScheme.primaryContainer,
-                                modifier = Modifier.size(32.dp),
+                                modifier = Modifier.size(24.dp),
                                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
@@ -305,16 +307,15 @@ private fun ModernExpandableOrderCard(
                                     )
                                 }
                             }
-                            
+
                             Text(
                                 text = item.productName,
                                 style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.weight(1f),
-                                maxLines = 1,
+                                maxLines = 2,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
-                        
+
                         Text(
                             text = "₹${String.format("%.2f", item.price * item.quantity)}",
                             style = MaterialTheme.typography.bodyMedium.copy(
@@ -324,9 +325,9 @@ private fun ModernExpandableOrderCard(
                     }
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(1.dp))
-                
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 // View Details Button
                 ModernActionButton(
                     text = "View Full Details",
@@ -376,4 +377,4 @@ private fun ModernOrderStatusChip(status: String, isDark: Boolean) {
         contentColor = textColor
     )
 }
-
+

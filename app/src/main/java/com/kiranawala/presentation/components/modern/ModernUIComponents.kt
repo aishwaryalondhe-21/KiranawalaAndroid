@@ -342,7 +342,7 @@ fun ExpandableCard(
         ) {
             Column(modifier = Modifier.padding(top = 8.dp)) {
                 HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 4.dp),
+                    modifier = Modifier.padding(vertical = 8.dp),
                     color = MaterialTheme.colorScheme.outlineVariant
                 )
                 expandedContent()

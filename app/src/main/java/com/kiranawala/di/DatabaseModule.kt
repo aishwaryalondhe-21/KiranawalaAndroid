@@ -46,4 +46,7 @@ object DatabaseModule {
     
     @Provides
     fun provideStoreReviewDao(db: AppDatabase): StoreReviewDao = db.storeReviewDao()
+
+    @Provides
+    fun provideAddressDao(db: AppDatabase): AddressDao = db.addressDao()
 }

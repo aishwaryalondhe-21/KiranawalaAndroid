@@ -40,6 +40,7 @@ import com.kiranawala.presentation.screens.profile.ProfileScreen
 import com.kiranawala.presentation.screens.profile.ProfileEditScreen
 import com.kiranawala.presentation.screens.address.AddressListScreen
 import com.kiranawala.presentation.screens.address.AddressFormScreen
+import com.kiranawala.presentation.screens.address.LocationPickerScreen
 import com.kiranawala.presentation.screens.order.OrderSuccessScreen
 import com.kiranawala.presentation.screens.settings.AboutUsScreen
 import com.kiranawala.utils.SessionManager
@@ -327,8 +328,11 @@ fun KiranaNavigation() {
         composable(Routes.AddressListScreen.route) {
             AddressListScreen(
                 onNavigateBack = { navController.navigateUp() },
-                onAddAddress = {
-                    navController.navigate(Routes.AddressFormScreen.createRoute())
+                onAddAddress = { query ->
+                    query?.let {
+                        navController.currentBackStackEntry?.savedStateHandle?.set("address_form_initial_query", it)
+                    }
+                    navController.navigate(Routes.AddressFormScreen.createRoute(autoPick = true))
                 },
                 onEditAddress = { address ->
                     navController.navigate(Routes.AddressFormScreen.createRoute(address.id))
@@ -344,19 +348,72 @@ fun KiranaNavigation() {
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
+                },
+                navArgument("autoPick") {
+                    type = NavType.BoolType
+                    defaultValue = false
                 }
             )
         ) { backStackEntry ->
             val addressId = backStackEntry.arguments?.getString("addressId")
+            val autoPick = backStackEntry.arguments?.getBoolean("autoPick") ?: false
             val viewModel: com.kiranawala.presentation.viewmodels.AddressViewModel = hiltViewModel()
             val uiState by viewModel.uiState.collectAsState()
             val address = addressId?.let { id ->
                 uiState.addresses.find { it.id == id }
             }
-            
+
             AddressFormScreen(
                 existingAddress = address,
-                onNavigateBack = { navController.navigateUp() }
+                savedStateHandle = backStackEntry.savedStateHandle,
+                autoLaunchLocation = autoPick && address == null,
+                onNavigateBack = { navController.navigateUp() },
+                onSelectLocation = { lat, lng, query ->
+                    navController.navigate(Routes.LocationPickerScreen.createRoute(lat, lng, query))
+                }
+            )
+        }
+
+        composable(
+            route = Routes.LocationPickerScreen.route,
+            arguments = listOf(
+                navArgument("lat") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("lng") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("query") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val initialLat = backStackEntry.arguments?.getString("lat")?.toDoubleOrNull()
+            val initialLng = backStackEntry.arguments?.getString("lng")?.toDoubleOrNull()
+            val initialQuery = backStackEntry.arguments?.getString("query")
+
+            LocationPickerScreen(
+                initialLatitude = initialLat,
+                initialLongitude = initialLng,
+                initialQuery = initialQuery,
+                onNavigateBack = { navController.navigateUp() },
+                onLocationConfirmed = { result ->
+                    navController.previousBackStackEntry?.savedStateHandle?.set("selected_formatted_address", result.formattedAddress)
+                    navController.previousBackStackEntry?.savedStateHandle?.set("selected_address_line1", result.addressLine1)
+                    navController.previousBackStackEntry?.savedStateHandle?.set("selected_address_line2", result.addressLine2)
+                    navController.previousBackStackEntry?.savedStateHandle?.set("selected_city", result.city)
+                    navController.previousBackStackEntry?.savedStateHandle?.set("selected_state", result.state)
+                    navController.previousBackStackEntry?.savedStateHandle?.set("selected_pincode", result.pincode)
+                    navController.previousBackStackEntry?.savedStateHandle?.set("selected_latitude", result.latitude)
+                    navController.previousBackStackEntry?.savedStateHandle?.set("selected_longitude", result.longitude)
+                    navController.navigateUp()
+                }
             )
         }
         
